@@ -7,7 +7,7 @@
 유튜브 재생목록 Sensor for Home Assistant 입니다.<br>
 Youtube Data API를 사용하여 센서로 유튜브 재생목록을 추가해 줍니다.<br>
 Youtube Data API를 사용하기 때문에 apikey를 발급받아야 합니다.<br>
-한 재생목록에 최대 50개까지 가져올 수 있습니다.(이건 api에서 제한이 50.)<br>
+한 재생목록에 최대 50개까지 가져올 수 있습니다.(이건 api에서 제한이 50)<br>
 
 <br>
 
