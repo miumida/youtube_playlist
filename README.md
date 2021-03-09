@@ -15,6 +15,7 @@ Youtube Data API를 사용하기 때문에 apikey를 발급받아야 합니다.<
 | Version | Date        | 내용              |
 | :-----: | :---------: | ----------------------- |
 | v1.0.0  | 2020.11.19  | First version  |
+| v1.0.1  | 2021.03.09  | manifest.json add version attribute.  |
 
 <br>
 
@@ -93,6 +94,6 @@ sensor:
 [1] Playlists: list | YouTube Data API - Google Developers (<https://developers.google.com/youtube/v3/docs/playlists/list?hl=ko>)<br>
 [2] Google 클라우드 플랫폼(<https://console.developers.google.com>)<br>
 
-[version-shield]: https://img.shields.io/badge/version-v1.0.0-orange.svg
+[version-shield]: https://img.shields.io/badge/version-v1.0.1-orange.svg
 [hakc-shield]: https://img.shields.io/badge/HAKC-Enjoy-blue.svg
 [hacs-shield]: https://img.shields.io/badge/HACS-Custom-red.svg
