@@ -8,15 +8,7 @@ from homeassistant.helpers.entity import Entity
 import requests
 import json
 
-CONF_APIKEY        = 'key'
-CONF_PLAYLISTS     = 'playlists'
-CONF_PLAYLIST_ID   = 'playlist_id'
-CONF_PLAYLIST_NAME = 'playlist_name'
-
-ICON = 'mdi:youtube'
-
-BASE_URL  = 'https://www.googleapis.com/youtube/v3/playlistItems?playlistId={}&part=snippet&maxResults=50&key={}'
-WATCH_URL = 'https://music.youtube.com/watch?v={}'
+from .const import DOMAIN, ICON, CONF_APIKEY, CONF_PLAYLISTS, CONF_PLAYLIST_ID, CONF_PLAYLIST_NAME, BASE_URL, WATCH_URL, ATTR_SNIPPET, ATTR_TIT, ATTR_URL
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_APIKEY): cv.string,
@@ -40,7 +32,10 @@ async def async_setup_platform(
     session = async_create_clientsession(hass)
 
     for plist in playlists:
-        sensors += [ YoutubeSensor(apikey, plist[CONF_PLAYLIST_ID], session) ]
+        sensor = YoutubeSensor(apikey, plist[CONF_PLAYLIST_ID], session)
+        await sensor.async_update()
+
+        sensors += [ sensor ]
 
     async_add_entities(sensors, True)
 
@@ -59,8 +54,6 @@ class YoutubeSensor(Entity):
         self.data = {}
         self.playlist = []
 
-        self.async_update()
-
     async def async_update(self):
         """Update sensor."""
         _LOGGER.debug('%s - Running update', self._name)
@@ -70,20 +63,27 @@ class YoutubeSensor(Entity):
 
             if not self._init:
                 url = BASE_URL.format(self._playlist_id, self._apikey)
-                res = requests.get(url)
+                res = await self._session.get(url)
 
-                songs = res.json()['items']
+                res_json = await res.json()
+
+                songs = res_json['items']
 
                 init = False
 
                 for song in songs:
 
-                    id    = song['snippet']['resourceId']['videoId']
-                    title = song['snippet']['title']
+                    title = song[ATTR_SNIPPET][ATTR_TIT]
+
+                    if title == 'Private video':
+                        continue
+
+                    id    = song[ATTR_SNIPPET]['resourceId']['videoId']
+                    kind  = song[ATTR_SNIPPET]['resourceId']['kind']
                     url   = WATCH_URL.format(song['snippet']['resourceId']['videoId'])
-                    thumbnail_url    = song['snippet']['thumbnails']['default']['url']
-                    thumbnail_medium = song['snippet']['thumbnails']['medium']['url']
-                    thumbnail_high   = song['snippet']['thumbnails']['high']['url']
+                    thumbnail_url    = song[ATTR_SNIPPET]['thumbnails']['default'][ATTR_URL]
+                    thumbnail_medium = song[ATTR_SNIPPET]['thumbnails']['medium'][ATTR_URL]
+                    thumbnail_high   = song[ATTR_SNIPPET]['thumbnails']['high'][ATTR_URL]
 
                     thumbnail_url = thumbnail_medium
 
@@ -91,14 +91,16 @@ class YoutubeSensor(Entity):
                         'video_id': id,
                         'title':    title,
                         'url':      url,
-                        'thumbnail_url': thumbnail_url
+                        'thumbnail_url': thumbnail_url,
+                        'kind' : kind
                     }
 
                     temp = {
                         'video_id': id,
                         'title':    title,
                         'url':      url,
-                        'thumbnail_url': thumbnail_url
+                        'thumbnail_url': thumbnail_url,
+                        'kind' : kind
                     }
 
                     self.playlist.append(temp)
@@ -108,6 +110,8 @@ class YoutubeSensor(Entity):
                         self._state = url
                         self._image = thumbnail_url
                         init = True
+
+                _LOGGER.error(dict)
 
                 self.data = dict
                 self._init = True
@@ -121,7 +125,7 @@ class YoutubeSensor(Entity):
                 self._image = self.playlist[0]['thumbnail_url']
 
         except Exception as error:  # pylint: disable=broad-except
-            _LOGGER.debug('%s - Could not update - %s', self._name, error)
+            _LOGGER.error('%s - Could not update - %s', self._name, error)
 
     @property
     def name(self):
@@ -148,7 +152,7 @@ class YoutubeSensor(Entity):
         return ICON
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Attributes."""
         att = {}
 
