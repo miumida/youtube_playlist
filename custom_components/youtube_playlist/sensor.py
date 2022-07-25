@@ -32,7 +32,9 @@ async def async_setup_platform(
     session = async_create_clientsession(hass)
 
     for plist in playlists:
-        sensor = YoutubeSensor(apikey, plist[CONF_PLAYLIST_ID], session)
+        pName = plist[CONF_PLAYLIST_NAME] if CONF_PLAYLIST_NAME in plist else None
+
+        sensor = YoutubeSensor(apikey, plist[CONF_PLAYLIST_ID], pName, session)
         await sensor.async_update()
 
         sensors += [ sensor ]
@@ -41,15 +43,18 @@ async def async_setup_platform(
 
 class YoutubeSensor(Entity):
     """YouTube Sensor class"""
-    def __init__(self, apikey, playlist_id, session):
-        self._state       = None
-        self._session     = session
-        self._image       = None
-        self._apikey      = apikey
-        self._name        = playlist_id.lower()
-        self._playlist_id = playlist_id
-        self._url         = None
-        self._init        = False
+    def __init__(self, apikey, playlist_id, playlist_name, session):
+        self._state         = None
+        self._session       = session
+        self._image         = None
+        self._apikey        = apikey
+        self._name          = playlist_id.lower().replace("-", "_")
+        self._playlist_id   = playlist_id
+        self._playlist_name = playlist_name
+        self._url           = None
+        self._init          = False
+
+        _LOGGER.error(self._name)
 
         self.data = {}
         self.playlist = []
@@ -68,6 +73,8 @@ class YoutubeSensor(Entity):
                 res_json = await res.json()
 
                 songs = res_json['items']
+
+                _LOGGER.error(songs)
 
                 init = False
 
@@ -139,7 +146,7 @@ class YoutubeSensor(Entity):
 
     @property
     def entity_id(self):
-        return 'sensor.youtube_{}'.format(self._playlist_id.lower())
+        return 'sensor.youtube_{}'.format(self._playlist_id.lower().replace("-", "_"))
 
     @property
     def state(self):
@@ -157,6 +164,9 @@ class YoutubeSensor(Entity):
         att = {}
 
         att['playlist_id'] = self._playlist_id
+
+        if self._playlist_name is not None:
+            att['playlist_name'] = self._playlist_name
 
         for key, val  in self.data.items():
             att[val['title']] = val['url']
